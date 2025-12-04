@@ -26,8 +26,27 @@ const Dashboard = () => {
   const userDetails = getUserDetails() || {};
   const { name = "-", email = "-" } = userDetails;
   const [profileName, setProfileName] = useState(name);
-  const [profileImage, setProfileImage] = useState(`${localStorage.getItem('profile')}`);
-  const profile=`${localStorage.getItem('profile')}`;
+  
+  // Initialize profile image from localStorage (with fallback and URL construction)
+  const [profileImage, setProfileImage] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const storedProfile = localStorage.getItem('profile');
+    if (!storedProfile) return '';
+    // If already a proper URL or data URL, use as-is
+    if (storedProfile.startsWith('http') || storedProfile.startsWith('data:')) {
+      return storedProfile;
+    }
+    // Otherwise, construct URL (safety fallback)
+    if (storedProfile.startsWith('/')) {
+      const baseURL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
+      return `${baseURL}${storedProfile}`;
+    }
+    // Handle Windows-style paths
+    const baseURL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
+    return `${baseURL}/${storedProfile.replace(/\\/g, '/')}`;
+  });
+  
+  const profile = profileImage;
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const taskSchema = z.object({
@@ -136,6 +155,20 @@ const Dashboard = () => {
 
   useEffect(() => {
     getTasks();
+    // Sync profile image from localStorage on mount and when it changes
+    const syncProfileImage = () => {
+      if (typeof window === 'undefined') return;
+      const storedProfile = localStorage.getItem('profile');
+      if (storedProfile) {
+        if (storedProfile.startsWith('/')) {
+          const baseURL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
+          setProfileImage(`${baseURL}${storedProfile}`);
+        } else {
+          setProfileImage(storedProfile);
+        }
+      }
+    };
+    syncProfileImage();
   }, []);
 
   // Convert dataURL (base64) to Blob for multipart upload
@@ -204,11 +237,19 @@ const Dashboard = () => {
           className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800 transition overflow-hidden shadow-md"
           title="Profile"
         >
-          <img
-            src={profile}
-            alt="Profile"
-            className="w-full h-full object-cover"
-          />
+          {profile && profile !== 'null' ? (
+            <img
+              src={profile}
+              alt="Profile"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentElement.textContent = name.charAt(0).toUpperCase();
+              }}
+            />
+          ) : (
+            <span className="text-lg font-bold">{name.charAt(0).toUpperCase()}</span>
+          )}
         </button>
       </div>
 
@@ -360,11 +401,22 @@ const Dashboard = () => {
           {/* Avatar with Upload */}
           <div className="flex justify-center mb-6 relative">
             <div className="relative">
-              <img
-                src={profileImage}
-                alt="Profile"
-                className="w-24 h-24 rounded-full object-cover border-4 border-blue-600"
-              />
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-blue-600"
+                  onError={(e) => {
+                    console.error("Failed to load profile image:", profileImage);
+                    // Fallback to a placeholder avatar
+                    e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23E5E7EB' width='100' height='100'/%3E%3Ctext x='50' y='50' font-size='40' fill='%236B7280' text-anchor='middle' dominant-baseline='middle'%3E%3F%3C/text%3E%3C/svg%3E";
+                  }}
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full object-cover border-4 border-blue-600 bg-gray-300 flex items-center justify-center">
+                  <span className="text-gray-600 text-2xl font-bold">{name.charAt(0).toUpperCase()}</span>
+                </div>
+              )}
               <label className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer transition">
                 <FiEdit2 size={16} />
                 <input

@@ -34,7 +34,18 @@ const Login = () => {
         toast.success("User Login Successfully");
         const { token, photo } = checkUserLoginRes.data || {};
         localStorage.setItem("token", token);
-        if (photo) localStorage.setItem("profile", photo);
+        
+        // Construct proper image URL
+        if (photo) {
+          let imageUrl = photo;
+          // If it's a relative path from backend, prepend base URL
+          if (photo && !photo.startsWith('http') && !photo.startsWith('data:')) {
+            const baseURL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5000';
+            imageUrl = `${baseURL}/${photo.replace(/\\/g, '/')}`;
+          }
+          localStorage.setItem("profile", imageUrl);
+        }
+        
         router.push("/dashboard");
       } else {
         setMessage("Invalid user or password!");
