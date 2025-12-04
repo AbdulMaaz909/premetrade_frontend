@@ -55,7 +55,7 @@ const Dashboard = () => {
         toast.error("Error while Fetching the task!");
       }
     } catch (error) {
-      toast.error(error.response?.data || "Error wjile fetching the task!");
+      toast.error(error.response?.data || "Error while fetching the task!");
       console.error(error);
     }
   };

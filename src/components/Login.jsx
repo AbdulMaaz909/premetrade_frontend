@@ -80,7 +80,7 @@ const Login = () => {
           <p className="text-center mt-4 text-sm text-red-600">{message}</p>
         )}
         <p className="text-center mt-4 text-sm text-gray-600">
-          Don't have an account?{' '}
+          Don`t have an account?{' '}
           <Link href="/register" className="text-blue-600 hover:underline">
             Register here
           </Link>
